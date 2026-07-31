@@ -12,6 +12,8 @@ repository.
 
 - `streamlit_app.py` - the Streamlit app (main entry point).
 - `requirements.txt` - Python dependencies.
+- `DeepPurpose/` - DeepPurpose 0.1.5 vendored and pre-patched so no `pip
+  install` is needed at build or runtime time.
 - `DTI_Model/` - pretrained model files (`config.pkl` + `model.pt`).
 - `data/Modified Data.csv` - drug/target lookup table.
 
@@ -34,13 +36,13 @@ Notes:
   `requirements.txt`, so the small CPU build is used instead of the multi-GB
   CUDA build. A harmless `uv` warning/retry with a `403` from that index appears
   in the build logs before the pip fallback succeeds - this is expected.
-- The app installs `DeepPurpose==0.1.5` at runtime with `--no-deps` (to avoid
-  its heavy/uninstallable dependencies such as `descriptastorus`, `dgl`, and
-  `ax-platform`), then patches the installed package:
-  - removes the `descriptastorus` import from `DeepPurpose/utils.py`, and
-  - forces `weights_only=False` on the `torch.load` call in `DeepPurpose/DTI.py`
-    (torch >= 2.6 defaults to `weights_only=True`, which would reject the
-    checkpoint's pickle format).
+- DeepPurpose 0.1.5 is **vendored** in the `DeepPurpose/` folder with two
+  patches already applied, so the app never runs `pip install` at runtime (the
+  Streamlit runtime has no `pip`):
+  - the `descriptastorus` import is removed from `DeepPurpose/utils.py`, and
+  - `weights_only=False` is forced on the `torch.load` call in
+    `DeepPurpose/DTI.py` (torch >= 2.6 defaults to `weights_only=True`, which
+    would reject the checkpoint's pickle format).
 - Model loading takes a while on the first request; subsequent requests use a
   cached instance.
 

@@ -1,50 +1,10 @@
 import os
-import re
 import sys
-import subprocess
-import importlib.util
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(APP_DIR)
-
-
-def _ensure_deeppurpose():
-    """Install DeepPurpose (without its heavy optional deps) and strip the
-    descriptastorus import from utils.py before the module is imported."""
-    try:
-        spec = importlib.util.find_spec("DeepPurpose")
-    except (ImportError, ModuleNotFoundError):
-        spec = None
-    if spec is None:
-        subprocess.check_call([
-            sys.executable, "-m", "pip", "install", "--quiet", "--no-deps",
-            "DeepPurpose==0.1.5",
-        ])
-    def _patch(module_name, old, new):
-        spec = importlib.util.find_spec(module_name)
-        if spec is None or spec.origin is None:
-            raise RuntimeError("Could not locate the " + module_name + " module")
-        path = spec.origin
-        with open(path, "r", encoding="utf-8") as fh:
-            content = fh.read()
-        if old in content:
-            content = content.replace(old, new)
-            with open(path, "w", encoding="utf-8") as fh:
-                fh.write(content)
-
-    _patch(
-        "DeepPurpose.utils",
-        "try:\n\tfrom descriptastorus.descriptors import rdDescriptors, rdNormalizedDescriptors\nexcept:\n\traise ImportError(\"Please install pip install git+https://github.com/bp-kelley/descriptastorus and pip install pandas-flavor\")\n",
-        "",
-    )
-    _patch(
-        "DeepPurpose.DTI",
-        "state_dict = torch.load(path, map_location = torch.device('cpu'))",
-        "state_dict = torch.load(path, map_location = torch.device('cpu'), weights_only = False)",
-    )
-
-
-_ensure_deeppurpose()
+if APP_DIR not in sys.path:
+    sys.path.insert(0, APP_DIR)
 
 import numpy as np
 import pandas as pd
@@ -52,8 +12,16 @@ import streamlit as st
 from rdkit import Chem
 from rdkit.Chem import Draw
 
-from DeepPurpose import utils
-from DeepPurpose import DTI as models
+# DeepPurpose 0.1.5 is vendored (pre-patched) under ./DeepPurpose so no pip
+# install is needed at build or runtime time.
+try:
+    from DeepPurpose import utils
+    from DeepPurpose import DTI as models
+except ImportError as exc:
+    raise RuntimeError(
+        "The vendored DeepPurpose package is missing. Expected it at: "
+        + os.path.join(APP_DIR, "DeepPurpose")
+    ) from exc
 
 DRUG_ENCODING = "Transformer"
 TARGET_ENCODING = "CNN"
