@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+*.log
+.DS_Store
+.env
+venv/
+.venv/
+data/
+data_processed/
+logs/
+Model Checkpoint/
+models_saved/
+plots/
+result/
+results/
+runs/
+comparison_results/
+DTI_env/
