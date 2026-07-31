@@ -12,6 +12,8 @@ repository.
 
 - `streamlit_app.py` - the Streamlit app (main entry point).
 - `requirements.txt` - Python dependencies.
+- `packages.txt` - apt system libraries (X11/XRender/Cairo) needed by RDKit's
+  molecule renderer on headless Linux.
 - `DeepPurpose/` - DeepPurpose 0.1.5 vendored and pre-patched so no `pip
   install` is needed at build or runtime time.
 - `DTI_Model/` - pretrained model files (`config.pkl` + `model.pt`).
@@ -43,6 +45,10 @@ Notes:
   - `weights_only=False` is forced on the `torch.load` call in
     `DeepPurpose/DTI.py` (torch >= 2.6 defaults to `weights_only=True`, which
     would reject the checkpoint's pickle format).
+- `packages.txt` installs the X11/Cairo system libraries that `rdkit.Chem.Draw`
+  (via `rdMolDraw2D`) requires on the headless Streamlit build image. The app
+  also degrades gracefully: if the drawing library is unavailable, it shows the
+  SMILES and atom count without the molecule image.
 - Model loading takes a while on the first request; subsequent requests use a
   cached instance.
 

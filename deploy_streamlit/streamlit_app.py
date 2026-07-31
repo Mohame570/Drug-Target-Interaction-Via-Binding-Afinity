@@ -10,7 +10,13 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from rdkit import Chem
-from rdkit.Chem import Draw
+
+# rdkit.Chem.Draw needs X11 system libraries (installed via packages.txt on
+# Streamlit Cloud); degrade gracefully if they are unavailable.
+try:
+    from rdkit.Chem import Draw
+except ImportError:
+    Draw = None
 
 # DeepPurpose 0.1.5 is vendored (pre-patched) under ./DeepPurpose so no pip
 # install is needed at build or runtime time.
@@ -69,11 +75,12 @@ def _render_result(drug_name, drug_smiles, drug_organism, target_name, target_id
             st.write(f"**Organism:** {drug_organism}")
         st.write(f"**SMILES:** `{drug_smiles}`")
         if mol is not None:
-            try:
-                img = Draw.MolToImage(mol, size=(400, 400))
-                st.image(img, caption=drug_name)
-            except Exception:
-                pass
+            if Draw is not None:
+                try:
+                    img = Draw.MolToImage(mol, size=(400, 400))
+                    st.image(img, caption=drug_name)
+                except Exception:
+                    pass
             st.write(f"**Number of atoms:** {mol.GetNumAtoms()}")
         else:
             st.warning("Could not render the molecular structure.")
