@@ -20,21 +20,28 @@ def _ensure_deeppurpose():
             sys.executable, "-m", "pip", "install", "--quiet", "--no-deps",
             "DeepPurpose==0.1.5",
         ])
-    utils_spec = importlib.util.find_spec("DeepPurpose.utils")
-    if utils_spec is None or utils_spec.origin is None:
-        raise RuntimeError("Could not locate the DeepPurpose.utils module")
-    utils_file = utils_spec.origin
-    with open(utils_file, "r", encoding="utf-8") as fh:
-        content = fh.read()
-    if "descriptastorus" in content:
-        patched = re.sub(
-            r"try:\n\s*from descriptastorus[\s\S]*?raise ImportError\([^\n]*\)\n",
-            "",
-            content,
-        )
-        if patched != content:
-            with open(utils_file, "w", encoding="utf-8") as fh:
-                fh.write(patched)
+    def _patch(module_name, old, new):
+        spec = importlib.util.find_spec(module_name)
+        if spec is None or spec.origin is None:
+            raise RuntimeError("Could not locate the " + module_name + " module")
+        path = spec.origin
+        with open(path, "r", encoding="utf-8") as fh:
+            content = fh.read()
+        if old in content:
+            content = content.replace(old, new)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(content)
+
+    _patch(
+        "DeepPurpose.utils",
+        "try:\n\tfrom descriptastorus.descriptors import rdDescriptors, rdNormalizedDescriptors\nexcept:\n\traise ImportError(\"Please install pip install git+https://github.com/bp-kelley/descriptastorus and pip install pandas-flavor\")\n",
+        "",
+    )
+    _patch(
+        "DeepPurpose.DTI",
+        "state_dict = torch.load(path, map_location = torch.device('cpu'))",
+        "state_dict = torch.load(path, map_location = torch.device('cpu'), weights_only = False)",
+    )
 
 
 _ensure_deeppurpose()

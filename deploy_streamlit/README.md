@@ -21,16 +21,26 @@ repository.
 2. Go to <https://streamlit.io/cloud> and sign in with GitHub.
 3. Click **New app** -> choose the repository, branch `master`, and set the main
    file path to `deploy_streamlit/streamlit_app.py`.
-4. Click **Deploy**.
+4. In **Advanced settings**, select **Python 3.14** (the pinned wheels require
+   it; Python 3.12/3.13 also work).
+5. Click **Deploy**.
 
 Notes:
 
+- All dependencies are unpinned (except `torch`) so pip picks wheels that match
+  the Python version the platform provides.
+- `torch` is installed from the official CPU-only wheel index
+  (`https://download.pytorch.org/whl/cpu`) via the `--extra-index-url` line in
+  `requirements.txt`, so the small CPU build is used instead of the multi-GB
+  CUDA build. A harmless `uv` warning/retry with a `403` from that index appears
+  in the build logs before the pip fallback succeeds - this is expected.
 - The app installs `DeepPurpose==0.1.5` at runtime with `--no-deps` (to avoid
   its heavy/uninstallable dependencies such as `descriptastorus`, `dgl`, and
-  `ax-platform`), then patches `DeepPurpose/utils.py` to remove the
-  `descriptastorus` import before importing the package.
-- `torch` is installed from the official CPU wheel index via the
-  `--extra-index-url` line in `requirements.txt`.
+  `ax-platform`), then patches the installed package:
+  - removes the `descriptastorus` import from `DeepPurpose/utils.py`, and
+  - forces `weights_only=False` on the `torch.load` call in `DeepPurpose/DTI.py`
+    (torch >= 2.6 defaults to `weights_only=True`, which would reject the
+    checkpoint's pickle format).
 - Model loading takes a while on the first request; subsequent requests use a
   cached instance.
 
